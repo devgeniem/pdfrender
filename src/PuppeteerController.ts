@@ -15,13 +15,40 @@ class PuppeteerController {
       ignoreHTTPSErrors: true,
     });
     const page = await browser.newPage();
-    page.setExtraHTTPHeaders({'pdf-parser-token': process.env.PDF_PARSER_TOKEN});
 
-    const url = req.body.url
+    const { url, callback, headers, waitForId, waitForFunction, waitSeconds } = req.body;
+
+    if ( headers && Object.keys(headers).length > 0 ) {
+      Object.entries(headers).map(([key,value]) => {
+        const obj = {};
+        obj[key] = value;
+
+        page.setExtraHTTPHeaders(obj);
+      });
+    }
 
     console.log( 'Requested page ' + url );
 
     await page.goto(url, { waitUntil: 'networkidle2' });
+
+    if ( callback ) {
+      await page.evaluate( callback => {
+        eval(callback);
+      }, callback );
+    }
+
+    if ( waitForId ) {
+      await page.waitForFunction( `document.getElementById("${waitForId}").innerText.length > 0` );
+    }
+
+    if ( waitForFunction ) {
+      await page.waitForFunction( waitForFunction );
+    }
+
+    if ( waitSeconds ) {
+      await page.waitFor( waitSeconds * 1000 );
+    }
+
     const ret = await page.pdf({
       format: 'A4',
       scale: 0.8,
@@ -29,7 +56,7 @@ class PuppeteerController {
 
     await browser.close();
 
-    console.log( 'Served PDF from ' + url + ' with length ' + ret.length );
+    console.log( 'Served PDF with parameters ' + JSON.stringify( req.body ) );
 
     return ret;
   }
