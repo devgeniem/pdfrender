@@ -16,6 +16,12 @@ class PuppeteerController {
     });
     const page = await browser.newPage();
 
+    page.setDefaultTimeout(300000);
+
+    if ( process.env.DEBUG ) {
+      page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+    }
+
     const { url, callback, headers, waitForId, waitForFunction, waitSeconds } = req.body;
 
     if ( headers && Object.keys(headers).length > 0 ) {
